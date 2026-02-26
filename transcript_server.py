@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 
 app = Flask(__name__)
+_yt_api = YouTubeTranscriptApi()
 
 
 def fetch_transcript(video_id: str, preferred_lang: str = "ja") -> str:
@@ -18,7 +19,7 @@ def fetch_transcript(video_id: str, preferred_lang: str = "ja") -> str:
     見つからなければ英語にフォールバック。
     それも無ければ利用可能な最初の字幕を返す。
     """
-    transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+    transcript_list = _yt_api.list(video_id)
 
     # 1. 要求言語を試みる
     # 2. 英語にフォールバック
@@ -29,14 +30,14 @@ def fetch_transcript(video_id: str, preferred_lang: str = "ja") -> str:
         try:
             transcript = transcript_list.find_transcript([lang])
             entries = transcript.fetch()
-            return " ".join(entry["text"] for entry in entries)
+            return " ".join(entry.text for entry in entries)
         except NoTranscriptFound:
             continue
 
     # それでも見つからなければ最初に利用可能な字幕を使う
     for transcript in transcript_list:
         entries = transcript.fetch()
-        return " ".join(entry["text"] for entry in entries)
+        return " ".join(entry.text for entry in entries)
 
     raise NoTranscriptFound(video_id, [], [])
 
